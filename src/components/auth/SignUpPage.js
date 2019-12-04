@@ -1,125 +1,115 @@
 import React from 'react';
 import gql from 'graphql-tag';
-import {useMutation} from '@apollo/react-hooks';
-import {Link} from 'react-router-dom';
+import { useMutation } from '@apollo/react-hooks';
 import AuthForm from './AuthForm';
-import {connect} from 'react-redux';
 import history from '../history';
 
+import { makeStyles } from '@material-ui/core/styles';
+import { TextField, Grid, Paper, CircularProgress, Typography, Button } from '@material-ui/core';
 
-import { TextField, Grid, Paper, CircularProgress } from '@material-ui/core';
+const useStyle = makeStyles({
+    container: {
+        margin: '5vh auto',
+        width: '50vh',
+        padding: '2vh'
+    }
+})
 
-const isInvalid = ({touched, error}) => {
-    return (touched && error)? true: false;
+const isInvalid = ({ touched, error }) => {
+    return (touched && error) ? true : false;
 }
 
 const renderError = (meta) => {
-    if(this.isInvalid(meta)) {
+    if (isInvalid(meta)) {
         return meta.error;
     }
 }
 
 const CREATE_USER = gql`
-    mutation CreateUser($name: String!, $email: String!, $password: String!){
+    mutation CreateUser($email: String!){
         createUser(input: {
             email: $email,
-            name: $name,
-            password: $password
         }){
-            _id
-            email
+            isEmailVerified
         }
     }
 `
 
-const renderFields = (fields) => {
+const renderFields = ({ input, meta }) => {
     return (
         <Grid container spacing={2} >
             <Grid item>
                 <TextField
-                type="text"
-                {...fields.email.input}
-                error={isInvalid(fields.email.meta)}
-                helperText={renderError(fields.email.meta)}
-                label="Email" 
-                variant="outlined"
-                required/>
-            </Grid>
-            <Grid item>
-                <TextField
-                type="text"
-                {...fields.name.input}
-                error={isInvalid(fields.name.meta)}
-                helperText={renderError(fields.name.meta)}
-                label="Name" 
-                variant="outlined"
-                required/>
-            </Grid>
-            <Grid item>
-                <TextField
-                type="password"
-                {...fields.passwordOne.input}
-                error={isInvalid(fields.passwordOne.meta)}
-                helperText={renderError(fields.passwordOne.meta)}
-                label="Password" 
-                variant="outlined"
-                required/>
-            </Grid>
-            <Grid item>
-                <TextField
-                type="password"
-                {...fields.passwordTwo.input}
-                error={isInvalid(fields.passwordTwo.meta)}
-                helperText={renderError(fields.passwordTwo.meta)}
-                label="Confirm Your Password" 
-                variant="outlined"
-                required/>
+                    type="text"
+                    {...input}
+                    error={isInvalid(meta)}
+                    helperText={renderError(meta)}
+                    label="Email"
+                    variant="outlined"
+                    required />
             </Grid>
         </Grid>
     )
 }
 
+
 const SignUp = (props) => {
-    const {auth} = props;
+    const classes = useStyle();
     const [createUser] = useMutation(CREATE_USER);
-    if(!auth) return <CircularProgress/>
-    if(auth.isSignedIn){
-        return (
-            <Paper>
-                You have logged In, please head over to <Link to="/">Home page</Link>
-            </Paper>
-        );
+    const [pageNumber, setPageNumber] = React.useState(1);
+    const [message, setMessage] = React.useState('');
+    const [isEmailVerified, setIsEmailVerified] = React.useState(false);
+    const [isSubmitAuth, setIsSubmitAuth] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!isSubmitAuth && !isEmailVerified) {
+            setPageNumber(1);
+        } else if (!isEmailVerified) {
+            setPageNumber(2);
+        } else history.push('/');
+    }, [isSubmitAuth, isEmailVerified])
+    const renderPage = (pageNumber) => {
+        switch (pageNumber) {
+            case 1:
+                return (<AuthForm
+                    title="Sign Up"
+                    onFormSubmit={onSubmit}
+                    btnText="Sign Up"
+                    renderFields={renderFields} />)
+            case 2:
+                return (
+                    <Paper className={classes.container}>
+                        <Typography>We have sent you an email with a confirmation link.</Typography>
+                        <Button>Resend Verification Link</Button>
+                    </Paper>
+                )
+            default:
+                return (<AuthForm
+                    title="Sign Up"
+                    onFormSubmit={onSubmit}
+                    btnText="Sign Up"
+                    renderFields={renderFields} />)
+        }
     }
     const onSubmit = (formValues) => {
         createUser({
             variables: {
                 email: formValues.email,
-                password: formValues.passwordOne,
-                name: formValues.name,
             }
-        }).then(data => {
-            console.log(data);
+        }).then(response => {
+            setIsSubmitAuth(true);
+            setIsEmailVerified(response.data.createUser.isEmailVerified);
+            setMessage('');
         }).catch(err => {
-            console.log(err);
+            setMessage(err.message);
         });
     }
     return (
         <Paper>
-            <AuthForm
-            title="Sign Up"
-            onFormSubmit={onSubmit}
-            fieldNames={['name', 'email', 'passwordOne', 'passwordTwo']}
-            btnText="SignUp"
-            renderFields={renderFields}/>
+            {message && <Typography>{message}</Typography>}
+            {renderPage(pageNumber)}
         </Paper>
     );
 
 }
-
-const mapStateToProps = state => {
-    return {
-        auth: state.auth,
-    };
-}
-
-export default connect(mapStateToProps)(SignUp);
+export default SignUp;

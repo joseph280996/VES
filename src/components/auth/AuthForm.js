@@ -1,15 +1,15 @@
 import React from 'react';
-import {connect} from 'react-redux';
-import {Fields, reduxForm} from 'redux-form';
+import { connect } from 'react-redux';
+import { Field, reduxForm } from 'redux-form';
 import { Grid, Typography, Button } from '@material-ui/core';
 
 class AuthForm extends React.Component {
-    render(){
+    render() {
         return (
             <form onSubmit={this.props.handleSubmit(this.props.onFormSubmit)}>
                 <Grid container direction="column" spacing={2}>
                     <Grid item><Typography variant="h3">{this.props.title}</Typography></Grid>
-                    <Grid item><Fields names={this.props.fieldNames} component={this.props.renderFields}></Fields></Grid>
+                    <Grid item><Field name="email" component={this.props.renderFields}></Field></Grid>
                     <Grid item><Button type="submit">{this.props.btnText}</Button></Grid>
                 </Grid>
             </form>
@@ -26,16 +26,16 @@ const mapStateToProps = state => {
 const validate = (formValues) => {
     const errors = {};
 
-    if(!formValues.email){
+    if (!formValues.email) {
         errors.email = "You Must Enter An Email";
     }
-    if(!formValues.password){
+    if (!formValues.password) {
         errors.password = "You Must Enter a Password";
     }
-    if(!formValues.passwordOne) {
+    if (!formValues.passwordOne) {
         errors.passwordOne = "You Must Enter a Password";
     }
-    if(formValues.passwordTwo !== formValues.passwordOne) {
+    if (formValues.passwordTwo !== formValues.passwordOne) {
         errors.passwordTwo = "The password you enter is not match";
     }
 
